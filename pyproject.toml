@@ -1,0 +1,18 @@
+[project]
+name = "blog"
+version = "0.1.0"
+description = "Sam Dudley's blog"
+authors = [{ name = "Sam Dudley", email = " <dudley.co.uk@gmail.com>" }]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["pelican[markdown] (>=4.10.1,<5.0.0)"]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

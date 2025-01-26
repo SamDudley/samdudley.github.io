@@ -1,0 +1,49 @@
+/* Variables */
+:root {
+  --code-color: hsl(32, 100%, 30%);
+}
+
+/* Fixes */
+html {
+  box-sizing: border-box;
+}
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Typography */
+body {
+  font-family: sans-serif;
+  font-size: 1rem;
+  line-height: normal;
+}
+
+header,
+main,
+footer {
+  max-width: 80ch;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
+}
+
+/* Styling */
+pre {
+  padding: 1rem;
+}
+
+body > *:not(:last-child) {
+  border-bottom: 2px solid black;
+}
+
+/* all `code` elements not in a markdown code block */
+code:not(div.highlight code) {
+  color: var(--code-color);
+}

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+        <title>Sam Dudley's blog - Spooky Django migrations</title>
+      <meta charset="utf-8" />
+      <meta name="generator" content="Pelican" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://samdudley.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Sam Dudley's blog Full Atom Feed" />
+        <link href="https://samdudley.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate" title="Sam Dudley's blog Categories Atom Feed" />
+
+    <link rel="stylesheet" href="https://samdudley.github.io/theme/css/normalize.css">
+    <link rel="stylesheet" href="https://samdudley.github.io/theme/css/style.css">
+    <link rel="stylesheet" href="https://samdudley.github.io/theme/css/pygments-default.css">
+
+
+
+
+    <meta name="tags" content="python" />
+    <meta name="tags" content="django" />
+
+  </head>
+
+  <body>
+    <header>
+      <hgroup><h1><a href="https://samdudley.github.io/">Sam Dudley's blog</a></h1></hgroup>
+      <nav><ul>
+      </ul></nav>
+    </header>
+    <main>
+  <article>
+    <header>
+      <h2>
+        <a href="https://samdudley.github.io/drafts/spooky-django-migrations.html" rel="bookmark"
+           title="Permalink to Spooky Django migrations">Spooky Django migrations</a></h2>
+      
+    </header>
+    <p>I recently came across an interesting and spooky problem with Django migrations at my
+<code>$DAY_JOB</code>.</p>
+<p>I was adding a new Django app to the project (let's call it <code>foo_app</code>) and was deploying
+the change to our various environments.</p>
+<p>On this project we have 4 environments:</p>
+<ul>
+<li>local</li>
+<li>dev</li>
+<li>staging</li>
+<li>prod</li>
+</ul>
+<p>My changes included a couple of new Django migrations within the new app.</p>
+<div class="highlight"><pre><span></span><code>my_project/
+    foo_app/
+        migrations/
+            0001_add_some_model.py
+            0002_change_some_fields.py
+</code></pre></div>
+
+<p>When I tested my changes on locally, everything worked as expected. I successfully
+deployed my changes to the <code>dev</code> environment, and found no issues in testing.</p>
+<p>After a successful test on <code>dev</code>, I merged my code into our <code>main</code> branch which triggers
+an automatic deployment to the <code>staging</code> environment. I went to test my changes on
+<code>staging</code> and immediately hit a server 500 error. I checked in our error tracking and
+found that the error was Django complaining that there was a missing database table that
+should have been created by the new migrations.</p>
+<p>My first thought was that for some reason the <code>migrate</code> command hadn't been run on
+deployment and the migrations hadn't been applied. I SSHed onto the <code>staging</code> server
+and started to take a look. I began by trying to run the <code>migrate</code> command manually and
+checking for errors. I ran <code>python manage.py migrate</code> and Django informed me that there
+were no migrations to run and we were up to date.</p>
+<p>Next, I took a look at the <code>django_migrations</code> table to check that my migrations had
+been recorded in there. I connected to our PostgreSQL database using <code>psql</code> and ran the
+following query:</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">django_migrations</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;foo_app&#39;</span><span class="p">;</span>
+</code></pre></div>
+
+<p>To my surprise, the query returned 9 rows, none of which were related to the migrations
+I was expecting to see.</p>
+<div class="highlight"><pre><span></span><code>0001_[...].py
+0002_[...].py
+0003_[...].py
+...
+0009_[...].py
+</code></pre></div>
+
+<p>It was at this point that I realised what was happening. These migrations were from an
+old app in this project, that had used the same name as our new app (<code>foo_app</code> in
+this example).</p>
+<h1>FIXME: first review up to here</h1>
+<p>The old app had 9 migrations and our new app had 2 migrations. When we ask Django to
+apply our new migrations, it checks the <code>django_migrations</code> table and sees that <code>0001</code>
+and <code>0002</code> have already been applied, even though they refer to the old Django app.</p>
+<p>The reason we didn't see this problem locally, or on the <code>dev</code> environment, must be
+because those environments have been recreated from scratch since that old Django app
+had been deleted. However, the <code>staging</code> environment hadn't been recreated since and the
+database hadn't been cleaned up when the Django app was removed.</p>
+<p>Now that I knew what the problem was, I hopped onto the <code>prod</code> environment and confirmed
+the same issue was present there, which it was, and began to formulate a plan.</p>
+<p>I started reading the Django documentation for the
+<a href="https://docs.djangoproject.com/en/5.1/ref/django-admin/#migrate"><code>migrate</code></a> command and
+found the
+<a href="https://docs.djangoproject.com/en/5.1/ref/django-admin/#cmdoption-migrate-fake"><code>--fake</code></a>
+flag which looks like it could be useful. What the <code>--fake</code> flag will do is allow me to
+reverse the migrations of <code>new_app</code> but without actually trying to unapply the changes
+in the file. The reason this is important is Django will unapply the migrations file
+that currently live in my application, and as these haven't actually been ran, the
+reverse migrate will fail, hence we need to <code>--fake</code> the work. I proceeded to use
+<code>--fake</code> to reverse the migrations of <code>new_app</code> with the following command:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>manage.py<span class="w"> </span>migrate<span class="w"> </span>new_app<span class="w"> </span>zero<span class="w"> </span>--fake
+</code></pre></div>
+
+<p>This command proceeded to unapply the migrations that I had for <code>new_app</code> without doing
+performing any changes. In practice this meant that the 2 rows for my <code>0001</code> and <code>0002</code>
+migrations were removed from the <code>django_migrations</code> table, leaving me in the following
+state.</p>
+<div class="highlight"><pre><span></span><code>0003_[...].py
+0004_[...].py
+0005_[...].py
+...
+0009_[...].py
+</code></pre></div>
+
+<p>As you can see, there are no records for <code>0001</code> or <code>0002</code> migrations. This can be
+followed up with running the <code>migrate</code> command forwards for <code>new_app</code>, and my migrations
+should be applied.</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>manage.py<span class="w"> </span>migrate<span class="w"> </span>new_app
+</code></pre></div>
+
+<p>It's important to note that this will only work if there are no conflicts with the
+previous, redundant tables which haven't been cleaned up. In my case I had chosen
+different names for my models so there were no conflicts.</p>
+<p>This now leaves me in the following state:</p>
+<div class="highlight"><pre><span></span><code>0001_[...].py  # current
+0002_[...].py  # current
+0003_[...].py  # legacy
+0004_[...].py  # legacy
+0005_[...].py  # legacy
+...
+0009_[...].py  # legacy
+</code></pre></div>
+
+<p>My app is now working as expected, but I still have tables and records in the
+<code>django_migrations</code> table laying around that I don't need.</p>
+<p>I worked out which tables were no longer needed and dropped them</p>
+<div class="highlight"><pre><span></span><code><span class="k">DROP</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">new_app_old_table_1</span><span class="p">,</span><span class="w"> </span><span class="n">new_app_old_table_2</span><span class="p">;</span>
+</code></pre></div>
+
+<p>and tidied up the <code>django_migrations</code> table</p>
+<div class="highlight"><pre><span></span><code><span class="k">DELETE</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">django_migrations</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;new_app&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">!~</span><span class="w"> </span><span class="s1">&#39;^000(1|2)_.+&#39;</span><span class="p">;</span>
+</code></pre></div>
+
+<p>I performed these actions on <code>staging</code> and checked that the same actions would be valid
+on <code>prod</code>. It was at this point that I realised that the <code>migrate --fake</code> step wasn't
+needed and that I only needed to drop the tables and tidy up the migrations table before
+running the current migrations. This also avoids the issue of trying to run conflicting
+migrations after faking backwards migrations and the SQL command to tidy up the
+<code>django_migrations</code> table is simpler as we can remove all rows first before our new
+migrations are run.</p>
+<p>As the <code>migrate</code> command is ran as part of deployment, this became my plan for <code>prod</code>
+and my final solution:</p>
+<ol>
+<li>Connect to the <code>prod</code> database</li>
+<li>Drop legacy, redundant tables</li>
+<li>Delete legacy migration records from the <code>django_migrations</code> table</li>
+<li>Deploy <code>main</code> to <code>prod</code> which will run new migrations for <code>new_app</code></li>
+</ol>
+<p>I performed this plan, prod deployed successfully, and I confirmed anything was right
+with testing.</p>
+    <footer>
+      <p>Published: <time datetime="2024-11-13T21:35:00+00:00">
+        Wed 13 November 2024
+      </time></p>
+        <p>Last updated: <time datetime="2024-11-13T21:35:00+00:00">
+          Wed 13 November 2024
+        </time></p>
+        <address>
+          By             <a href="https://samdudley.github.io/author/sam-dudley.html">Sam Dudley</a>
+        </address>
+        <p>
+          Category: <a href="https://samdudley.github.io/category/python.html">Python</a>
+        </p>
+        <p>
+          Tags:
+            <a href="https://samdudley.github.io/tag/python.html">python</a>
+            <a href="https://samdudley.github.io/tag/django.html">django</a>
+        </p>
+    </footer>
+  </article>
+    </main>
+    <footer>
+      <address>
+        Proudly powered by <a rel="nofollow" href="https://getpelican.com/">Pelican</a>,
+        which takes great advantage of <a rel="nofollow" href="https://www.python.org/">Python</a>.
+      </address>
+    </footer>
+  </body>
+</html>
