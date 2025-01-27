@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+        <title>Sam Dudley's blog - Bulk upserts in Django</title>
+      <meta charset="utf-8" />
+      <meta name="generator" content="Pelican" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://samdudley.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Sam Dudley's blog Full Atom Feed" />
+        <link href="https://samdudley.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate" title="Sam Dudley's blog Categories Atom Feed" />
+
+    <link rel="stylesheet" href="https://samdudley.github.io/theme/css/normalize.css">
+    <link rel="stylesheet" href="https://samdudley.github.io/theme/css/style.css">
+    <link rel="stylesheet" href="https://samdudley.github.io/theme/css/pygments-default.css">
+
+
+
+
+    <meta name="tags" content="python" />
+    <meta name="tags" content="django" />
+    <meta name="tags" content="til" />
+
+  </head>
+
+  <body>
+    <header>
+      <hgroup><h1><a href="https://samdudley.github.io/">Sam Dudley's blog</a></h1></hgroup>
+      <nav><ul>
+            <li><a href="https://samdudley.github.io/category/python.html"  aria-current="page" >Python</a></li>
+      </ul></nav>
+    </header>
+    <main>
+  <article>
+    <header>
+      <h2>
+        <a href="https://samdudley.github.io/til-bulk-upserts-in-django.html" rel="bookmark"
+           title="Permalink to Bulk upserts in Django">Bulk upserts in Django</a></h2>
+      
+    </header>
+    <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">Cake</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">sku</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+
+<span class="n">Cake</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="s2">&quot;CAKE0001&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Coffee Cake&quot;</span><span class="p">)</span>
+
+<span class="n">cakes</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Cake</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="s2">&quot;CAKE0001&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Deluxe Coffee Cake&quot;</span><span class="p">),</span>
+    <span class="n">Cake</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="s2">&quot;CAKE0002&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Lemon Drizzle Cake&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="c1"># Bulk upsert</span>
+<span class="n">Cake</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span>
+    <span class="n">cakes</span><span class="p">,</span>
+    <span class="n">unique_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span>
+    <span class="n">update_conflicts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">updates_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="k">assert</span> <span class="n">Cake</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+<span class="k">assert</span> <span class="n">Cake</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="s2">&quot;CAKE0001&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;Deluxe Coffee Cake&quot;</span>
+</code></pre></div>
+
+<p>https://docs.djangoproject.com/en/5.1/ref/models/querysets/#bulk-create</p>
+    <footer>
+      <p>Published: <time datetime="2025-01-27T21:13:00+00:00">
+        Mon 27 January 2025
+      </time></p>
+        <p>Last updated: <time datetime="2025-01-27T21:13:00+00:00">
+          Mon 27 January 2025
+        </time></p>
+        <address>
+          By             <a href="https://samdudley.github.io/author/sam-dudley.html">Sam Dudley</a>
+        </address>
+        <p>
+          Category: <a href="https://samdudley.github.io/category/python.html">Python</a>
+        </p>
+        <p>
+          Tags:
+            <a href="https://samdudley.github.io/tag/python.html">python</a>
+            <a href="https://samdudley.github.io/tag/django.html">django</a>
+            <a href="https://samdudley.github.io/tag/til.html">til</a>
+        </p>
+    </footer>
+  </article>
+    </main>
+    <footer>
+      <address>
+        Proudly powered by <a rel="nofollow" href="https://getpelican.com/">Pelican</a>,
+        which takes great advantage of <a rel="nofollow" href="https://www.python.org/">Python</a>.
+      </address>
+    </footer>
+  </body>
+</html>

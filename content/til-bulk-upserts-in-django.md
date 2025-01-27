@@ -1,13 +1,12 @@
 Status: published
 Title: Bulk upserts in Django
-Date: 2025-01-27 14:12
-Modified: 2025-01-27 14:12
+Date: 2025-01-27 21:13
+Modified: 2025-01-27 21:13
 Category: Python
 Tags: python, django, til
 Slug: til-bulk-upserts-in-django
 Authors: Sam Dudley
 Summary: TIL that you can do bulk upserts in Django
-
 
 ```python
 class Cake(models.Model):
