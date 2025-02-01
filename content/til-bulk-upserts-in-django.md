@@ -1,7 +1,7 @@
 Status: published
 Title: Bulk upserts in Django
 Date: 2025-01-27 21:13
-Modified: 2025-01-27 21:13
+Modified: 2025-02-01 20:37
 Category: Python
 Tags: python, django, til
 Slug: til-bulk-upserts-in-django
@@ -32,4 +32,15 @@ assert Cake.objects.count() == 2
 assert Cake.objects.get(sku="CAKE0001").name == "Deluxe Coffee Cake"
 ```
 
-https://docs.djangoproject.com/en/5.1/ref/models/querysets/#bulk-create
+Is roughly equivalent to
+
+```sql
+INSERT INTO cake (sku name)
+    VALUES ('CAKE0001', 'Coffee Cake');
+
+INSERT INTO cake (sku, name)
+    VALUES ('CAKE0001', 'Deluxe Coffee Cake'), ('CAKE0002', 'Lemon Drizzle Cake')
+    ON CONFLICT (sku) DO UPDATE SET name = EXCLUDED.name;
+```
+
+Here are the [docs](https://docs.djangoproject.com/en/5.1/ref/models/querysets/#bulk-create).

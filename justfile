@@ -1,5 +1,5 @@
 build:
     poetry run pelican content -s publishconf.py
 
-run:
+dev:
     poetry run pelican --listen --autoreload
