@@ -2,7 +2,9 @@
 
 {% block head %}
 {{ super() }}
-    <link rel="stylesheet" href="{{ SITEURL }}/theme/css/normalize.css">
-    <link rel="stylesheet" href="{{ SITEURL }}/theme/css/style.css">
-    <link rel="stylesheet" href="{{ SITEURL }}/theme/css/pygments-default.css">
-{% endblock %}
+<link rel="stylesheet" href="{{ SITEURL }}/theme/css/normalize.css">
+<link rel="stylesheet" href="{{ SITEURL }}/theme/css/style.css">
+<link rel="stylesheet" href="{{ SITEURL }}/theme/css/pygments-default.css">
+{% block style %}
+{% endblock style %}
+{% endblock head %}

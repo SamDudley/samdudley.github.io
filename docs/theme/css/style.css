@@ -48,18 +48,11 @@ body > *:not(:last-child) {
   margin-bottom: 1rem;
 }
 
+pre {
+  overflow-x: auto;
+}
+
 /* all `code` elements not in a markdown code block */
 code:not(div.highlight code) {
   color: var(--code-color);
-}
-
-/* Home page */
-main article {
-  padding: 1rem;
-  border: 1px solid black;
-  border-bottom: 2px solid black;
-
-  h2 {
-    margin-top: 0;
-  }
 }

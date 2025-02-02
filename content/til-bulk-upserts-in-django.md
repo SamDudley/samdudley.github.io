@@ -39,7 +39,9 @@ INSERT INTO cake (sku name)
     VALUES ('CAKE0001', 'Coffee Cake');
 
 INSERT INTO cake (sku, name)
-    VALUES ('CAKE0001', 'Deluxe Coffee Cake'), ('CAKE0002', 'Lemon Drizzle Cake')
+    VALUES
+        ('CAKE0001', 'Deluxe Coffee Cake'),
+        ('CAKE0002', 'Lemon Drizzle Cake')
     ON CONFLICT (sku) DO UPDATE SET name = EXCLUDED.name;
 ```
 
