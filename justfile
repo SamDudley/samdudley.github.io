@@ -3,3 +3,8 @@ build:
 
 dev:
     poetry run pelican --listen --autoreload
+
+publish: build
+    git add .
+    git commit
+    git push

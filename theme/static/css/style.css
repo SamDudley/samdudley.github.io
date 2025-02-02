@@ -26,12 +26,17 @@ body {
   line-height: normal;
 }
 
-header,
-main,
-footer {
-  max-width: 80ch;
-  margin-inline-start: auto;
-  margin-inline-end: auto;
+body {
+  padding-inline-start: 1rem;
+  padding-inline-end: 1rem;
+
+  > header,
+  > main,
+  > footer {
+    max-width: 80ch;
+    margin-inline-start: auto;
+    margin-inline-end: auto;
+  }
 }
 
 /* Styling */
